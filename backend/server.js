@@ -146,7 +146,23 @@ app.post("/login", (req, res) => {
     });
   });
 });
+// 🔐 보호된 유저 정보 API
+app.get("/profile", (req, res) => {
+  const authHeader = req.headers.authorization;
 
+  if (!authHeader) {
+    return res.status(401).json({ message: "토큰이 없습니다." });
+  }
+
+  const token = authHeader.split(" ")[1]; // "Bearer <token>"
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return res.status(200).json({ message: "인증 성공", user: decoded });
+  } catch (err) {
+    return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+  }
+});
 // ✅ 서버 실행
 app.listen(PORT, () => {
   console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);
