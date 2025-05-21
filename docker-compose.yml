@@ -1,33 +1,24 @@
-version: "3.8"
-
 services:
   db:
-    image: mysql:8.0
-    container_name: mysql-container
+    image: mysql:8
+    container_name: mysql-db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: userdb
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
     ports:
       - "3306:3306"
-    volumes:
-      - dbdata:/var/lib/mysql
 
-  app:
-    build: .
-    container_name: node-container
+  backend:
+    build: ./backend
+    container_name: express-api
     restart: always
-    ports:
-      - "5000:5000"
     depends_on:
       - db
     environment:
       DB_HOST: db
-      DB_USER: user
-      DB_PASSWORD: password
+      DB_USER: root
+      DB_PASSWORD: root
       DB_NAME: userdb
-
-volumes:
-  dbdata:
+    ports:
+      - "5000:5000"
