@@ -174,7 +174,7 @@ app.get("/profile", authenticateToken, (req, res) => {
 
 // ✅ 점수 저장 API
 app.post("/score", authenticateToken, (req, res) => {
-  const { score, timePlayed } = req.body;
+  const score = req.body;
   const userId = req.user.id;
 
   if (typeof score !== "number") {
@@ -182,25 +182,21 @@ app.post("/score", authenticateToken, (req, res) => {
   }
 
   const insertScoreQuery = `
-    INSERT INTO scores (user_id, score, time_played)
-    VALUES (?, ?, ?)
+    INSERT INTO scores (user_id, score)
+    VALUES (?, ?)
   `;
 
-  db.query(
-    insertScoreQuery,
-    [userId, score, timePlayed || 0],
-    (err, result) => {
-      if (err) {
-        console.error("❌ 점수 저장 실패:", err);
-        return res
-          .status(500)
-          .json({ message: "점수 저장 중 오류 발생", error: err });
-      }
-
-      console.log("✅ 점수 저장 성공:", result.insertId);
-      return res.status(201).json({ message: "점수 저장 완료" });
+  db.query(insertScoreQuery, [userId, score || 0], (err, result) => {
+    if (err) {
+      console.error("❌ 점수 저장 실패:", err);
+      return res
+        .status(500)
+        .json({ message: "점수 저장 중 오류 발생", error: err });
     }
-  );
+
+    console.log("✅ 점수 저장 성공:", result.insertId);
+    return res.status(201).json({ message: "점수 저장 완료" });
+  });
 });
 
 // ✅ 유저의 TOP 3 점수 조회 API
