@@ -12,11 +12,31 @@ const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 // ✅ 미들웨어
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      process.env.ALLOWED_ORIGIN || "https://8133-211-177-76-64.ngrok-free.app",
+    ],
     credentials: true,
   })
 );
 app.use(express.json());
+
+// ✅ JWT 인증 미들웨어
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "토큰이 없습니다." });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded; // 사용자 정보 저장
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
+  }
+}
 
 // ✅ 회원가입 API
 app.post("/register", (req, res) => {
@@ -146,23 +166,68 @@ app.post("/login", (req, res) => {
     });
   });
 });
+
 // 🔐 보호된 유저 정보 API
-app.get("/profile", (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json({ message: "토큰이 없습니다." });
-  }
-
-  const token = authHeader.split(" ")[1]; // "Bearer <token>"
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    return res.status(200).json({ message: "인증 성공", user: decoded });
-  } catch (err) {
-    return res.status(401).json({ message: "토큰이 유효하지 않습니다." });
-  }
+app.get("/profile", authenticateToken, (req, res) => {
+  return res.status(200).json({ message: "인증 성공", user: req.user });
 });
+
+// ✅ 점수 저장 API
+app.post("/score", authenticateToken, (req, res) => {
+  const { score, timePlayed } = req.body;
+  const userId = req.user.id;
+
+  if (typeof score !== "number") {
+    return res.status(400).json({ message: "score는 숫자여야 합니다." });
+  }
+
+  const insertScoreQuery = `
+    INSERT INTO scores (user_id, score, time_played)
+    VALUES (?, ?, ?)
+  `;
+
+  db.query(
+    insertScoreQuery,
+    [userId, score, timePlayed || 0],
+    (err, result) => {
+      if (err) {
+        console.error("❌ 점수 저장 실패:", err);
+        return res
+          .status(500)
+          .json({ message: "점수 저장 중 오류 발생", error: err });
+      }
+
+      console.log("✅ 점수 저장 성공:", result.insertId);
+      return res.status(201).json({ message: "점수 저장 완료" });
+    }
+  );
+});
+
+// ✅ 유저의 TOP 3 점수 조회 API
+app.get("/score/top", authenticateToken, (req, res) => {
+  const userId = req.user.id;
+
+  const query = `
+    SELECT score FROM scores
+    WHERE user_id = ?
+    ORDER BY score DESC
+    LIMIT 3
+  `;
+
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error("❌ TOP 점수 조회 실패:", err);
+      return res.status(500).json({ message: "DB 오류", error: err });
+    }
+
+    const topScores = results.map((row) => row.score);
+    return res.status(200).json({
+      message: "성공",
+      topScores,
+    });
+  });
+});
+
 // ✅ 서버 실행
 app.listen(PORT, () => {
   console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);
