@@ -199,31 +199,6 @@ app.post("/score", authenticateToken, (req, res) => {
   });
 });
 
-// ✅ 유저의 TOP 3 점수 조회 API
-app.get("/score/top", authenticateToken, (req, res) => {
-  const userId = req.user.id;
-
-  const query = `
-    SELECT score FROM scores
-    WHERE user_id = ?
-    ORDER BY score DESC
-    LIMIT 3
-  `;
-
-  db.query(query, [userId], (err, results) => {
-    if (err) {
-      console.error("❌ TOP 점수 조회 실패:", err);
-      return res.status(500).json({ message: "DB 오류", error: err });
-    }
-
-    const topScores = results.map((row) => row.score);
-    return res.status(200).json({
-      message: "성공",
-      topScores,
-    });
-  });
-});
-
 // ✅ 서버 실행
 app.listen(PORT, () => {
   console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);
