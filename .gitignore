@@ -1,2 +1,4 @@
+.env 추가해서 아래 추가
+
 const JWT_SECRET = process.env.JWT_SECRET;
 const origins = process.env.ALLOWED_ORIGINS.split(",");
