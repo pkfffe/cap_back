@@ -190,6 +190,25 @@ app.get("/rankings", (req, res) => {
   });
 });
 
+app.get("/ranking", (req, res) => {
+  const query = `
+    SELECT user_nickname, score
+    FROM scores
+    ORDER BY score DESC
+  `;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: "DB 오류", error: err });
+    }
+
+    return res.status(200).json({
+      message: "랭킹 조회 성공",
+      ranking: results, // [{user_nickname, score}, ...]
+    });
+  });
+});
+
 // ✅ 서버 실행
 app.listen(PORT, () => {
   console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);
